@@ -3,77 +3,49 @@ import { View, Text, StyleSheet, TextInput, Alert } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import ClayButton from '../components/ClayButton';
 import ClayCard from '../components/ClayCard';
-import { auth, db } from '../config/firebase';
-import { PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
 
-export default function OTPVerificationScreen({ route, navigation }) {
+export default function AdminLoginScreen({ navigation }) {
   const { theme, isDarkMode } = useTheme();
   const styles = getStyles(theme, isDarkMode);
-  
-  const { verificationId, phoneNumber } = route.params;
-  const [otp, setOtp] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [passcode, setPasscode] = useState('');
 
-  const handleVerifyOTP = async () => {
-    if (otp.length < 6) {
-      Alert.alert('Error', 'Please enter a valid 6-digit OTP');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const credential = PhoneAuthProvider.credential(verificationId, otp);
-      const userCredential = await signInWithCredential(auth, credential);
-      const user = userCredential.user;
-
-      const userDocRef = doc(db, 'patients', user.uid);
-      const userDocSnap = await getDoc(userDocRef);
-
-      if (userDocSnap.exists()) {
-        navigation.reset({ index: 0, routes: [{ name: 'MainDrawer' }] });
-      } else {
-        navigation.navigate('ProfileSetup');
-      }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'Invalid OTP. Please try again.');
-    } finally {
-      setLoading(false);
+  const handleLogin = () => {
+    if (passcode === 'admin123') {
+      navigation.navigate('AdminDashboard');
+    } else {
+      Alert.alert('Access Denied', 'Incorrect passcode. Please try again.');
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Verify OTP</Text>
-      <Text style={styles.subtitle}>Enter the code sent to {phoneNumber}</Text>
+      <Text style={styles.title}>Admin Portal</Text>
+      <Text style={styles.subtitle}>Enter your clinic access code</Text>
 
       <ClayCard style={{ width: '100%' }}>
-        <Text style={styles.label}>One-Time Password</Text>
+        <Text style={styles.label}>Passcode</Text>
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
-            placeholder="123456"
+            placeholder="Passcode"
             placeholderTextColor={theme.colors.textLight}
-            keyboardType="number-pad"
-            maxLength={6}
-            value={otp}
-            onChangeText={setOtp}
+            secureTextEntry
+            value={passcode}
+            onChangeText={setPasscode}
           />
         </View>
 
         <ClayButton 
-          title="Verify"
-          onPress={handleVerifyOTP}
-          loading={loading}
+          title="Login"
+          variant="primary"
+          onPress={handleLogin}
           style={{ marginBottom: theme.spacing.md }}
         />
-        
+
         <ClayButton 
           title="Go Back"
           variant="secondary"
           onPress={() => navigation.goBack()}
-          disabled={loading}
         />
       </ClayCard>
     </View>
@@ -113,10 +85,9 @@ const getStyles = (theme, isDarkMode) => StyleSheet.create({
     borderColor: theme.colors.border,
     borderRadius: theme.borderRadius.md,
     padding: theme.spacing.md,
-    fontSize: 24, // Larger font for OTP
-    letterSpacing: 8,
-    textAlign: 'center',
+    fontSize: theme.typography.body.fontSize,
     color: isDarkMode ? '#FFFFFF' : theme.colors.text,
     backgroundColor: theme.colors.background,
+    textAlign: 'center',
   },
 });

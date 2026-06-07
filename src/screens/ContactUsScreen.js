@@ -1,24 +1,25 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { theme } from '../theme/theme';
+import { View, Text, StyleSheet } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
+import ClayCard from '../components/ClayCard';
 
 export default function ContactUsScreen() {
+  const { theme, isDarkMode } = useTheme();
+  const styles = getStyles(theme, isDarkMode);
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Contact Us</Text>
-      
-      <View style={styles.form}>
-        <Text style={styles.placeholder}>We are here to help!</Text>
-        
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>Send Message</Text>
-        </TouchableOpacity>
-      </View>
+      <ClayCard>
+        <Text style={styles.cardText}>Phone: +1 234 567 8900</Text>
+        <Text style={styles.cardText}>Email: yellomedi@gmail.com</Text>
+        <Text style={styles.cardText}>Address: 123 Health Ave, Wellness City</Text>
+      </ClayCard>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme, isDarkMode) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
@@ -26,29 +27,15 @@ const styles = StyleSheet.create({
   },
   title: {
     ...theme.typography.header,
-    color: theme.colors.text,
+    color: isDarkMode ? '#FFFFFF' : theme.colors.text,
     marginBottom: theme.spacing.lg,
   },
-  form: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholder: {
+  cardText: {
     ...theme.typography.body,
-    color: theme.colors.surface,
-    marginBottom: theme.spacing.xl,
-  },
-  button: {
-    backgroundColor: theme.colors.primary,
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.xl,
-    borderRadius: theme.borderRadius.md,
-    width: '100%',
     alignItems: 'center',
   },
   buttonText: {
     ...theme.typography.title,
-    color: theme.colors.text,
+    color: isDarkMode ? '#FFFFFF' : theme.colors.text,
   },
 });

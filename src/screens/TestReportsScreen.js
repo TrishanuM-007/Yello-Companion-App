@@ -1,19 +1,23 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../theme/theme';
+import { useTheme } from '../context/ThemeContext';
+import ClayCard from '../components/ClayCard';
 
 export default function TestReportsScreen() {
+  const { theme, isDarkMode } = useTheme();
+  const styles = getStyles(theme, isDarkMode);
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Your Test Reports</Text>
-      <View style={styles.card}>
+      <Text style={styles.title}>Test Reports</Text>
+      <ClayCard>
         <Text style={styles.cardText}>No recent test reports available.</Text>
-      </View>
+      </ClayCard>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme, isDarkMode) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
@@ -21,16 +25,11 @@ const styles = StyleSheet.create({
   },
   title: {
     ...theme.typography.header,
-    color: theme.colors.text,
+    color: isDarkMode ? '#FFFFFF' : theme.colors.text,
     marginBottom: theme.spacing.lg,
-  },
-  card: {
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.lg,
-    borderRadius: theme.borderRadius.lg,
   },
   cardText: {
     ...theme.typography.body,
-    color: theme.colors.textLight,
+    color: isDarkMode ? '#FFFFFF' : theme.colors.text,
   }
 });

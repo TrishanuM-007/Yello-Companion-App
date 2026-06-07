@@ -3,26 +3,30 @@ import {
   View, 
   Text, 
   StyleSheet, 
-  TouchableOpacity, 
   TextInput, 
-  ActivityIndicator, 
   Alert,
   ScrollView,
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
-import { theme } from '../theme/theme';
+import { useTheme } from '../context/ThemeContext';
+import ClayButton from '../components/ClayButton';
+import ClayCard from '../components/ClayCard';
 import { db } from '../config/firebase';
 import { doc, setDoc } from 'firebase/firestore';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { TouchableOpacity } from 'react-native';
 
 export default function ProfileSetupScreen({ route, navigation }) {
-  // Params will be passed from OTP Verification Screen
+  const { theme, isDarkMode } = useTheme();
+  const styles = getStyles(theme, isDarkMode);
+
   const uid = route?.params?.uid || 'test-uid';
   const phoneNumber = route?.params?.phoneNumber || '';
   
-  // Form State
   const [name, setName] = useState('');
-  const [age, setAge] = useState('');
+  const [dob, setDob] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [gender, setGender] = useState('');
   const [address, setAddress] = useState('');
   const [allergies, setAllergies] = useState('');
@@ -33,19 +37,17 @@ export default function ProfileSetupScreen({ route, navigation }) {
   const [toastVisible, setToastVisible] = useState(false);
 
   const handleCompleteSetup = async () => {
-    // Basic validation for required fields
-    if (!name.trim() || !age.trim() || !gender.trim() || !address.trim()) {
-      Alert.alert('Required Fields', 'Please fill in your Name, Age, Gender, and Address.');
+    if (!name.trim() || !gender.trim() || !address.trim()) {
+      Alert.alert('Required Fields', 'Please fill in your Name, Gender, and Address.');
       return;
     }
 
     setLoading(true);
     try {
-      // Save profile data to Firestore in the 'patients' collection
       const userRef = doc(db, 'patients', uid);
       await setDoc(userRef, {
         name,
-        age: parseInt(age, 10),
+        dob: dob.toISOString().split('T')[0],
         gender,
         phoneNumber,
         address,
@@ -55,13 +57,11 @@ export default function ProfileSetupScreen({ route, navigation }) {
         createdAt: new Date().toISOString()
       });
 
-      // Show success toast
       setToastVisible(true);
       
-      // Wait for toast to be visible briefly before navigating
       setTimeout(() => {
         setToastVisible(false);
-        navigation.navigate('MainDrawer');
+        navigation.reset({ index: 0, routes: [{ name: 'MainDrawer' }] });
       }, 1500);
 
     } catch (error) {
@@ -81,31 +81,51 @@ export default function ProfileSetupScreen({ route, navigation }) {
         <Text style={styles.title}>Profile Setup</Text>
         <Text style={styles.subtitle}>Let's get to know you</Text>
 
-        <View style={styles.form}>
+        <ClayCard style={styles.form}>
           <Text style={styles.label}>Full Name *</Text>
           <TextInput
             style={styles.input}
             placeholder="John Doe"
-            placeholderTextColor={theme.colors.surface}
+            placeholderTextColor={theme.colors.textLight}
             value={name}
             onChangeText={setName}
           />
 
-          <Text style={styles.label}>Age *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. 30"
-            placeholderTextColor={theme.colors.surface}
-            keyboardType="number-pad"
-            value={age}
-            onChangeText={setAge}
-          />
+          <Text style={styles.label}>Date of Birth *</Text>
+          {Platform.OS === 'ios' ? (
+            <DateTimePicker
+              value={dob}
+              mode="date"
+              display="default"
+              onChange={(event, selectedDate) => {
+                if (selectedDate) setDob(selectedDate);
+              }}
+              style={{ alignSelf: 'flex-start', marginBottom: 16 }}
+            />
+          ) : (
+            <>
+              <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.input}>
+                <Text style={{ color: isDarkMode ? '#FFFFFF' : theme.colors.text }}>{dob.toISOString().split('T')[0]}</Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={dob}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowDatePicker(false);
+                    if (selectedDate) setDob(selectedDate);
+                  }}
+                />
+              )}
+            </>
+          )}
 
           <Text style={styles.label}>Gender *</Text>
           <TextInput
             style={styles.input}
             placeholder="Male / Female / Other"
-            placeholderTextColor={theme.colors.surface}
+            placeholderTextColor={theme.colors.textLight}
             value={gender}
             onChangeText={setGender}
           />
@@ -121,7 +141,7 @@ export default function ProfileSetupScreen({ route, navigation }) {
           <TextInput
             style={styles.input}
             placeholder="123 Main St, City"
-            placeholderTextColor={theme.colors.surface}
+            placeholderTextColor={theme.colors.textLight}
             value={address}
             onChangeText={setAddress}
           />
@@ -130,7 +150,7 @@ export default function ProfileSetupScreen({ route, navigation }) {
           <TextInput
             style={[styles.input, styles.textArea]}
             placeholder="List any allergies..."
-            placeholderTextColor={theme.colors.surface}
+            placeholderTextColor={theme.colors.textLight}
             multiline
             numberOfLines={3}
             value={allergies}
@@ -141,7 +161,7 @@ export default function ProfileSetupScreen({ route, navigation }) {
           <TextInput
             style={[styles.input, styles.textArea]}
             placeholder="Relevant medical history..."
-            placeholderTextColor={theme.colors.surface}
+            placeholderTextColor={theme.colors.textLight}
             multiline
             numberOfLines={3}
             value={medicalHistory}
@@ -152,23 +172,18 @@ export default function ProfileSetupScreen({ route, navigation }) {
           <TextInput
             style={styles.input}
             placeholder="Provider and Policy Number"
-            placeholderTextColor={theme.colors.surface}
+            placeholderTextColor={theme.colors.textLight}
             value={insuranceInfo}
             onChangeText={setInsuranceInfo}
           />
 
-          <TouchableOpacity 
-            style={styles.button}
+          <ClayButton 
+            title="Complete Setup"
             onPress={handleCompleteSetup}
-            disabled={loading || toastVisible}
-          >
-            {loading ? (
-              <ActivityIndicator color={theme.colors.text} />
-            ) : (
-              <Text style={styles.buttonText}>Complete Setup</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+            loading={loading}
+            style={{ marginTop: theme.spacing.xl }}
+          />
+        </ClayCard>
       </ScrollView>
 
       {/* Custom Toast */}
@@ -181,24 +196,24 @@ export default function ProfileSetupScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme, isDarkMode) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
   },
   scrollContent: {
     padding: theme.spacing.xl,
-    paddingTop: 60, // extra padding for top area
+    paddingTop: 60,
     paddingBottom: 40,
   },
   title: {
     ...theme.typography.header,
-    color: theme.colors.text,
+    color: isDarkMode ? '#FFFFFF' : theme.colors.text,
     marginBottom: theme.spacing.sm,
   },
   subtitle: {
     ...theme.typography.body,
-    color: theme.colors.surface,
+    color: isDarkMode ? '#FFFFFF' : theme.colors.textLight,
     marginBottom: theme.spacing.xl,
   },
   form: {
@@ -207,7 +222,7 @@ const styles = StyleSheet.create({
   label: {
     ...theme.typography.title,
     fontSize: 14,
-    color: theme.colors.text,
+    color: isDarkMode ? '#FFFFFF' : theme.colors.text,
     marginBottom: theme.spacing.xs,
     marginTop: theme.spacing.sm,
   },
@@ -217,37 +232,24 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.md,
     padding: theme.spacing.md,
     fontSize: theme.typography.body.fontSize,
-    color: theme.colors.text,
-    backgroundColor: '#FAFAFA',
+    color: isDarkMode ? '#FFFFFF' : theme.colors.text,
+    backgroundColor: theme.colors.background,
     marginBottom: theme.spacing.sm,
   },
   readOnlyInput: {
-    backgroundColor: '#EAEAEA',
-    color: '#888888',
+    backgroundColor: theme.colors.border,
+    color: isDarkMode ? '#FFFFFF' : theme.colors.textLight,
   },
   textArea: {
     minHeight: 80,
-    textAlignVertical: 'top', // android multiline fix
-  },
-  button: {
-    backgroundColor: theme.colors.primary,
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.xl,
-    borderRadius: theme.borderRadius.md,
-    width: '100%',
-    alignItems: 'center',
-    marginTop: theme.spacing.xl,
-  },
-  buttonText: {
-    ...theme.typography.title,
-    color: theme.colors.text,
+    textAlignVertical: 'top',
   },
   toastContainer: {
     position: 'absolute',
     bottom: 50,
     left: '10%',
     right: '10%',
-    backgroundColor: '#4CAF50', // Success green
+    backgroundColor: '#4CAF50',
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
     alignItems: 'center',

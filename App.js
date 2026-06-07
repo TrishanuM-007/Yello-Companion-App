@@ -4,15 +4,24 @@ import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import AppNavigator from './src/navigation/AppNavigator';
-import { theme } from './src/theme/theme';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 
-export default function App() {
+function RootApp() {
+  const { theme, isDarkMode } = useTheme();
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <NavigationContainer>
         <AppNavigator />
-        <StatusBar style="auto" />
+        <StatusBar style={isDarkMode ? "light" : "dark"} />
       </NavigationContainer>
     </GestureHandlerRootView>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <RootApp />
+    </ThemeProvider>
   );
 }
