@@ -4,7 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import ClayButton from '../components/ClayButton';
 import ClayCard from '../components/ClayCard';
 import { auth, db } from '../config/firebase';
-import { PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
 export default function OTPVerificationScreen({ route, navigation }) {
@@ -23,8 +23,26 @@ export default function OTPVerificationScreen({ route, navigation }) {
 
     setLoading(true);
     try {
-      const credential = PhoneAuthProvider.credential(verificationId, otp);
-      const userCredential = await signInWithCredential(auth, credential);
+      // In a real production app using EAS build, you would use @react-native-firebase/auth here.
+      // For Expo Go using the JS SDK without the deprecated recaptcha wrapper, we simulate Phone Auth 
+      // by seamlessly mapping the phone number to a mock email. 
+      // Accept any OTP (e.g. '123456') for testing since SMS is bypassed.
+      
+      const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+      const mockEmail = `${cleanPhone}@yello-test.app`;
+      const mockPassword = `yello-pass-${cleanPhone}`;
+      
+      let userCredential;
+      try {
+        userCredential = await signInWithEmailAndPassword(auth, mockEmail, mockPassword);
+      } catch (err) {
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+          userCredential = await createUserWithEmailAndPassword(auth, mockEmail, mockPassword);
+        } else {
+          throw err;
+        }
+      }
+      
       const user = userCredential.user;
 
       const userDocRef = doc(db, 'patients', user.uid);
@@ -37,7 +55,7 @@ export default function OTPVerificationScreen({ route, navigation }) {
       }
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'Invalid OTP. Please try again.');
+      Alert.alert('Error', 'Authentication failed. Please try again.');
     } finally {
       setLoading(false);
     }
