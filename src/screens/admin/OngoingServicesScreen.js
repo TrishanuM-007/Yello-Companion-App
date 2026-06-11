@@ -6,6 +6,7 @@ import ClayButton from '../../components/ClayButton';
 import { db } from '../../config/firebase';
 import { collection, query, where, onSnapshot, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
+import { sendPushNotification } from '../../utils/NotificationSetup';
 
 export default function OngoingServicesScreen() {
   const { theme, isDarkMode } = useTheme();
@@ -170,20 +171,16 @@ export default function OngoingServicesScreen() {
           if (pSnap.exists()) {
             const pushToken = pSnap.data().expoPushToken;
             if (pushToken) {
-              await fetch('https://exp.host/--/api/v2/push/send', {
-                method: 'POST',
-                headers: {
-                  Accept: 'application/json',
-                  'Accept-encoding': 'gzip, deflate',
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  to: pushToken,
-                  sound: 'default',
-                  title: 'How was your visit?',
-                  body: 'Your service has been marked as complete. Please open the app to leave feedback!',
-                }),
-              });
+              let title = '';
+              let body = '';
+              if (collectionName === 'available_slots') {
+                title = 'How was your visit?';
+                body = 'Your appointment is complete. Please leave us some feedback!';
+              } else if (collectionName === 'test_requests') {
+                title = 'Test Complete';
+                body = 'Your test is done. We will notify you when results are ready!';
+              }
+              await sendPushNotification(pushToken, title, body);
             }
           }
         } catch (notifError) {

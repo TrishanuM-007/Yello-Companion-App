@@ -4,6 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import ClayButton from '../components/ClayButton';
 import ClayCard from '../components/ClayCard';
 import { auth } from '../config/firebase';
+import { PhoneAuthProvider } from 'firebase/auth';
 
 export default function LoginScreen({ navigation }) {
   const { theme, isDarkMode } = useTheme();
@@ -21,12 +22,18 @@ export default function LoginScreen({ navigation }) {
     setLoading(true);
     try {
       const formattedPhoneNumber = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
+      const cleanNumber = phoneNumber.replace(/\D/g, '');
       
-      // Note: The standard Firebase JS SDK requires a DOM for reCAPTCHA which React Native lacks.
-      // Without the deprecated wrapper or switching to `@react-native-firebase/auth` (which breaks Expo Go),
-      // we bypass the actual SMS verification here and simulate it via email/password in the next screen
-      // to keep your Expo Go development workflow fast and crash-free.
-      const verificationId = 'dummy-expo-verification-id';
+      // Development Bypass Check
+      if (cleanNumber === '11234567890') {
+        navigation.navigate('OTPVerification', { verificationId: 'DEV_BYPASS', phoneNumber: formattedPhoneNumber });
+        setLoading(false);
+        return;
+      }
+
+      // Normal Verification Flow
+      const phoneProvider = new PhoneAuthProvider(auth);
+      const verificationId = await phoneProvider.verifyPhoneNumber(formattedPhoneNumber, null);
       
       navigation.navigate('OTPVerification', { verificationId, phoneNumber: formattedPhoneNumber });
     } catch (error) {

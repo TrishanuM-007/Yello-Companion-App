@@ -6,6 +6,7 @@ import ClayCard from '../../components/ClayCard';
 import ClayButton from '../../components/ClayButton';
 import { db } from '../../config/firebase';
 import { collection, query, where, onSnapshot, doc, getDoc, updateDoc, getDocs } from 'firebase/firestore';
+import { sendPushNotification } from '../../utils/NotificationSetup';
 
 export default function PendingApprovalsScreen() {
   const { theme, isDarkMode } = useTheme();
@@ -164,6 +165,20 @@ export default function PendingApprovalsScreen() {
         confirmedAt: new Date().toISOString()
       });
       
+      try {
+        const patientRef = doc(db, 'patients', activeRequest.patientId);
+        const patientSnap = await getDoc(patientRef);
+        if (patientSnap.exists() && patientSnap.data().expoPushToken) {
+          await sendPushNotification(
+            patientSnap.data().expoPushToken,
+            'Appointment Confirmed!',
+            'Your doctor appointment has been successfully scheduled.'
+          );
+        }
+      } catch (notifErr) {
+        console.error('Failed to send notification:', notifErr);
+      }
+      
       Alert.alert('Success', 'Booking confirmed and slots assigned!');
     } catch (error) {
       console.error('Error confirming booking:', error);
@@ -238,6 +253,21 @@ export default function PendingApprovalsScreen() {
         requestedTime: formattedTime,
         confirmedAt: new Date().toISOString()
       });
+      
+      try {
+        const patientRef = doc(db, 'patients', activeTestRequest.patientId);
+        const patientSnap = await getDoc(patientRef);
+        if (patientSnap.exists() && patientSnap.data().expoPushToken) {
+          await sendPushNotification(
+            patientSnap.data().expoPushToken,
+            'Test Booking Confirmed!',
+            'Your lab test request has been approved.'
+          );
+        }
+      } catch (notifErr) {
+        console.error('Failed to send notification:', notifErr);
+      }
+
       Alert.alert('Success', `Test booking confirmed at ${formattedTime}!`);
     } catch (error) {
       console.error('Error confirming test booking:', error);

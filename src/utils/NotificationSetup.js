@@ -46,10 +46,10 @@ export async function registerForPushNotificationsAsync() {
     }
     
     try {
-      token = (await Notifications.getExpoPushTokenAsync({
-        projectId: process.env.EXPO_PUBLIC_PROJECT_ID || '', 
-      })).data;
-      console.log("Expo Push Token:", token);
+      const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
+      const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+      token = tokenData.data;
+      console.log('Push Token:', tokenData.data);
     } catch (e) {
       console.warn('Push notifications are not supported in Expo Go. Returning dummy token.');
       token = 'EXPO_GO_DUMMY_TOKEN';
@@ -95,5 +95,34 @@ export async function scheduleAppointmentReminder(title, dateString, timeString)
     }
   } catch (error) {
     console.error('Error scheduling local notification:', error);
+  }
+}
+
+export async function sendPushNotification(expoPushToken, title, body) {
+  if (!expoPushToken || expoPushToken === 'EXPO_GO_DUMMY_TOKEN') {
+    console.log('Skipping push notification (invalid or dummy token)');
+    return;
+  }
+
+  const message = {
+    to: expoPushToken,
+    sound: 'default',
+    title,
+    body,
+  };
+
+  try {
+    await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Accept-encoding': 'gzip, deflate',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(message),
+    });
+    console.log(`Push notification sent to ${expoPushToken}`);
+  } catch (error) {
+    console.error('Error sending push notification:', error);
   }
 }

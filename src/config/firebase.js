@@ -16,10 +16,21 @@ export const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase Authentication and get a reference to the service
-export const auth = getAuth(app);
+const rawAuth = getAuth(app);
 
 // Disable app verification for testing (skips ReCaptcha for test numbers)
-auth.settings.appVerificationDisabledForTesting = true;
+rawAuth.settings.appVerificationDisabledForTesting = true;
+
+// Proxy the auth object to allow a Development Bypass for the current user
+export const auth = new Proxy(rawAuth, {
+  get(target, prop) {
+    if (prop === 'currentUser' && global.DEV_BYPASS_USER) {
+      return global.DEV_BYPASS_USER;
+    }
+    const value = target[prop];
+    return typeof value === 'function' ? value.bind(target) : value;
+  }
+});
 
 // Initialize Cloud Firestore and get a reference to the service
 export const db = getFirestore(app);

@@ -4,7 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import ClayButton from '../components/ClayButton';
 import ClayCard from '../components/ClayCard';
 import { auth, db } from '../config/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
 export default function OTPVerificationScreen({ route, navigation }) {
@@ -23,26 +23,25 @@ export default function OTPVerificationScreen({ route, navigation }) {
 
     setLoading(true);
     try {
-      // In a real production app using EAS build, you would use @react-native-firebase/auth here.
-      // For Expo Go using the JS SDK without the deprecated recaptcha wrapper, we simulate Phone Auth 
-      // by seamlessly mapping the phone number to a mock email. 
-      // Accept any OTP (e.g. '123456') for testing since SMS is bypassed.
-      
-      const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
-      const mockEmail = `${cleanPhone}@yello-test.app`;
-      const mockPassword = `yello-pass-${cleanPhone}`;
-      
-      let userCredential;
-      try {
-        userCredential = await signInWithEmailAndPassword(auth, mockEmail, mockPassword);
-      } catch (err) {
-        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-          userCredential = await createUserWithEmailAndPassword(auth, mockEmail, mockPassword);
+      // Development Bypass Check
+      if (verificationId === 'DEV_BYPASS' && otp === '123456') {
+        // Set the global bypass user so the proxy in firebase.js returns it
+        global.DEV_BYPASS_USER = { uid: 'dev-bypass-uid-123', phoneNumber: '+11234567890' };
+        
+        const bypassDocRef = doc(db, 'patients', 'dev-bypass-uid-123');
+        const bypassDocSnap = await getDoc(bypassDocRef);
+        
+        if (bypassDocSnap.exists()) {
+          navigation.reset({ index: 0, routes: [{ name: 'MainDrawer' }] });
         } else {
-          throw err;
+          navigation.navigate('ProfileSetup', { uid: 'dev-bypass-uid-123', phoneNumber: '+11234567890' });
         }
+        return;
       }
-      
+
+      // Normal Verification Flow
+      const credential = PhoneAuthProvider.credential(verificationId, otp);
+      const userCredential = await signInWithCredential(auth, credential);
       const user = userCredential.user;
 
       const userDocRef = doc(db, 'patients', user.uid);
